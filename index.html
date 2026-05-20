@@ -977,7 +977,9 @@
                             vorlagen[subBg].forEach(p => prozessNamesToAdd.add(p));
                         }
                     });
-                    // Wuchten + Lackieren werden im Modal abgefragt (siehe askWuchtenFor/askLackierenFor)
+                    // VENTI Komplett = ganze Maschine → Wuchten + Lackieren immer dabei
+                    prozessNamesToAdd.add('Wuchten');
+                    prozessNamesToAdd.add('Lackieren');
                 } else if (vorlagen[bg]) {
                     vorlagen[bg].forEach(p => prozessNamesToAdd.add(p));
                 }
@@ -1003,8 +1005,9 @@
             const wuchtenIdx = interneProzesse.findIndex(p => p.name === 'Wuchten');
             const lackierenIdx = interneProzesse.findIndex(p => p.name === 'Lackieren');
             
-            // VENTI öffnet das Modal auch — Wuchten/Lackieren optional
+            // VENTI hat Wuchten + Lackieren bereits automatisch → kein Modal nötig
             const hasVenti = Array.from(selectedBaugruppen).some(bg => bg.startsWith('venti-'));
+            if (hasVenti) return;
             
             let needWuchten = false;
             let needLackieren = false;
@@ -1013,11 +1016,6 @@
                 if (askWuchtenFor.includes(bg) && !selectedInterne.has(wuchtenIdx)) needWuchten = true;
                 if (askLackierenFor.includes(bg) && !selectedInterne.has(lackierenIdx)) needLackieren = true;
             });
-            // VENTI enthält Laufrad → Wuchten + Lackieren beide optional
-            if (hasVenti) {
-                if (!selectedInterne.has(wuchtenIdx)) needWuchten = true;
-                if (!selectedInterne.has(lackierenIdx)) needLackieren = true;
-            }
             
             if (needWuchten || needLackieren) {
                 openOptionalModal(needWuchten, needLackieren);
