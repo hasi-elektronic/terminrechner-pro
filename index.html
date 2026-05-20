@@ -734,10 +734,10 @@
             'gehause-klein':    ['Laser','Kanten / Runden','Schweißen - wenig','Montieren'],
             'gehause-mittel':   ['Laser','Kanten / Runden','Schweißen - mittel','Montieren'],
             'gehause-gross':    ['Laser','Kanten / Runden','Schweißen - viel','Montieren'],
-            // Laufrad — Wuchten ist Pflicht (rotierendes Teil!)
-            'laufrad-klein':    ['Laser','Schweißen - wenig','Wuchten'],
-            'laufrad-mittel':   ['Laser','Schweißen - mittel','Wuchten'],
-            'laufrad-gross':    ['Laser','Schweißen - viel','Wuchten'],
+            // Laufrad — Wuchten ist OPTIONAL (wird im Modal gefragt)
+            'laufrad-klein':    ['Laser','Schweißen - wenig'],
+            'laufrad-mittel':   ['Laser','Schweißen - mittel'],
+            'laufrad-gross':    ['Laser','Schweißen - viel'],
             // Bock — klein/mittel/gross unterschiedliche Schweißarbeit
             'bock-klein':       ['Laser','Kanten / Runden','Schweißen - wenig','Montieren'],
             'bock-mittel':      ['Laser','Kanten / Runden','Schweißen - mittel','Montieren'],
@@ -747,8 +747,8 @@
             'montage':          ['Montieren','Montage Schallkabinen']
         };
         
-        // Wuchten ist bei Laufrad bereits in der Vorlage enthalten — kein Prompt nötig
-        const askWuchtenFor = [];
+        // Wuchten ist optional bei Laufrad — Modal fragt nach
+        const askWuchtenFor = ['laufrad-klein','laufrad-mittel','laufrad-gross'];
         // Lackieren ist optional für Gehäuse, Laufrad, Bock
         const askLackierenFor = ['gehause-klein','gehause-mittel','gehause-gross',
                                  'laufrad-klein','laufrad-mittel','laufrad-gross',
@@ -977,8 +977,7 @@
                             vorlagen[subBg].forEach(p => prozessNamesToAdd.add(p));
                         }
                     });
-                    prozessNamesToAdd.add('Wuchten');
-                    prozessNamesToAdd.add('Lackieren');
+                    // Wuchten + Lackieren werden im Modal abgefragt (siehe askWuchtenFor/askLackierenFor)
                 } else if (vorlagen[bg]) {
                     vorlagen[bg].forEach(p => prozessNamesToAdd.add(p));
                 }
@@ -1004,8 +1003,8 @@
             const wuchtenIdx = interneProzesse.findIndex(p => p.name === 'Wuchten');
             const lackierenIdx = interneProzesse.findIndex(p => p.name === 'Lackieren');
             
+            // VENTI öffnet das Modal auch — Wuchten/Lackieren optional
             const hasVenti = Array.from(selectedBaugruppen).some(bg => bg.startsWith('venti-'));
-            if (hasVenti) return;
             
             let needWuchten = false;
             let needLackieren = false;
@@ -1014,6 +1013,11 @@
                 if (askWuchtenFor.includes(bg) && !selectedInterne.has(wuchtenIdx)) needWuchten = true;
                 if (askLackierenFor.includes(bg) && !selectedInterne.has(lackierenIdx)) needLackieren = true;
             });
+            // VENTI enthält Laufrad → Wuchten + Lackieren beide optional
+            if (hasVenti) {
+                if (!selectedInterne.has(wuchtenIdx)) needWuchten = true;
+                if (!selectedInterne.has(lackierenIdx)) needLackieren = true;
+            }
             
             if (needWuchten || needLackieren) {
                 openOptionalModal(needWuchten, needLackieren);
