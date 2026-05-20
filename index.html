@@ -701,38 +701,45 @@
     
     <script>
         const interneProzesse = [
-            { name: "Laser", baseTage: 5, info: "Laserschneiden von Blechen", scaleFactor: 0.4 },
-            { name: "Material bestellen", baseTage: 10, info: "⚠️ Nur bei Sondermaterial (1.8928, 1.4835, 1.4462, 1.4828, usw.) - manuell hinzufügen!", scaleFactor: 0 },
-            { name: "Kanten / Runden", baseTage: 3, info: "Kanten biegen und Ecken runden", scaleFactor: 0.3 },
-            { name: "Senken / Gewindeschneiden", baseTage: 2, info: "Bohrungen senken", scaleFactor: 0.3 },
-            { name: "Drücken", baseTage: 2, info: "Metalldrückarbeiten", scaleFactor: 0.4 },
-            { name: "Schweißen - wenig", baseTage: 3, info: "Düsenverlängerung / Konus / Tragplatte", scaleFactor: 0.5 },
-            { name: "Schweißen - mittel", baseTage: 5, info: "Düseneinheit / Kleines Laufrad", scaleFactor: 0.5 },
-            { name: "Schweißen - viel", baseTage: 7, info: "Großes Gehäuse / Großer Bock", scaleFactor: 0.5 },
-            { name: "Wuchten", baseTage: 3, info: "Auswuchten rotierender Teile", scaleFactor: 0.5 },
-            { name: "Lackieren", baseTage: 3, info: "Lackierung intern", scaleFactor: 0.3 },
-            { name: "Montieren", baseTage: 4, info: "Montage / Nietmutter", scaleFactor: 0.5 },
-            { name: "Isolieren", baseTage: 3, info: "Isolierung anbringen", scaleFactor: 0.4 },
-            { name: "Montage Schallkabinen", baseTage: 3, info: "Schallkabinen montieren", scaleFactor: 0.4 }
+            // PARALLEL — Rüstzeit-Ersparnis (Maschine einmal einrichten, alle Teile danach)
+            { name: "Laser", baseTage: 5, info: "Laserschneiden von Blechen", skala: 'parallel', scaleFactor: 0.4 },
+            { name: "Material bestellen", baseTage: 10, info: "⚠️ Nur bei Sondermaterial (1.8928, 1.4835, 1.4462, 1.4828, usw.) - manuell hinzufügen!", skala: 'fixed', scaleFactor: 0 },
+            { name: "Kanten / Runden", baseTage: 3, info: "Kanten biegen und Ecken runden", skala: 'parallel', scaleFactor: 0.3 },
+            { name: "Senken / Gewindeschneiden", baseTage: 2, info: "Bohrungen senken", skala: 'parallel', scaleFactor: 0.3 },
+            { name: "Drücken", baseTage: 2, info: "Metalldrückarbeiten", skala: 'parallel', scaleFactor: 0.4 },
+            // SERIAL — jedes Stück braucht eigene Zeit (Handarbeit, nicht parallelisierbar)
+            { name: "Schweißen - wenig", baseTage: 3, info: "Düsenverlängerung / Konus / Tragplatte", skala: 'serial', perStueck: 0.5 },
+            { name: "Schweißen - mittel", baseTage: 5, info: "Düseneinheit / Kleines Laufrad", skala: 'serial', perStueck: 1.0 },
+            { name: "Schweißen - viel", baseTage: 7, info: "Großes Gehäuse / Großer Bock", skala: 'serial', perStueck: 1.5 },
+            { name: "Wuchten", baseTage: 3, info: "Auswuchten rotierender Teile", skala: 'serial', perStueck: 0.5 },
+            { name: "Lackieren", baseTage: 3, info: "Lackierung intern", skala: 'serial', perStueck: 0.3 },
+            { name: "Montieren", baseTage: 4, info: "Montage / Nietmutter", skala: 'serial', perStueck: 0.8 },
+            { name: "Isolieren", baseTage: 3, info: "Isolierung anbringen", skala: 'serial', perStueck: 0.5 },
+            { name: "Montage Schallkabinen", baseTage: 3, info: "Schallkabinen montieren", skala: 'serial', perStueck: 0.5 }
         ];
         const externeProzesse = [
-            { name: "Pulverbeschichten", baseTage: 5, info: "Externe Pulverbeschichtung", scaleFactor: 0.2 },
-            { name: "Verzinken", baseTage: 5, info: "Verzinken extern", scaleFactor: 0.2 },
-            { name: "Beizen", baseTage: 5, info: "Beizen extern", scaleFactor: 0.2 },
-            { name: "Glühen", baseTage: 5, info: "Glühen extern", scaleFactor: 0.2 },
-            { name: "Drehen", baseTage: 10, info: "Dreharbeiten extern", scaleFactor: 0.5 },
-            { name: "Externe Lackierung", baseTage: 5, info: "Lackierung extern", scaleFactor: 0.3 },
-            { name: "Gummieren", baseTage: 20, info: "Gummierung extern", scaleFactor: 0.3 }
+            // PARALLEL — Batch-Bearbeitung beim Lieferant
+            { name: "Pulverbeschichten", baseTage: 5, info: "Externe Pulverbeschichtung", skala: 'parallel', scaleFactor: 0.2 },
+            { name: "Verzinken", baseTage: 5, info: "Verzinken extern", skala: 'parallel', scaleFactor: 0.2 },
+            { name: "Beizen", baseTage: 5, info: "Beizen extern", skala: 'parallel', scaleFactor: 0.2 },
+            { name: "Glühen", baseTage: 5, info: "Glühen extern", skala: 'parallel', scaleFactor: 0.2 },
+            // SERIAL — Drehen ist Einzelbearbeitung
+            { name: "Drehen", baseTage: 10, info: "Dreharbeiten extern", skala: 'serial', perStueck: 1.5 },
+            { name: "Externe Lackierung", baseTage: 5, info: "Lackierung extern", skala: 'parallel', scaleFactor: 0.3 },
+            { name: "Gummieren", baseTage: 20, info: "Gummierung extern", skala: 'parallel', scaleFactor: 0.3 }
         ];
         
         const vorlagen = {
-            'gehause-klein':    ['Laser','Kanten / Runden','Schweißen - mittel','Montieren'],
+            // Gehäuse — klein hat weniger Schweißarbeit
+            'gehause-klein':    ['Laser','Kanten / Runden','Schweißen - wenig','Montieren'],
             'gehause-mittel':   ['Laser','Kanten / Runden','Schweißen - mittel','Montieren'],
             'gehause-gross':    ['Laser','Kanten / Runden','Schweißen - viel','Montieren'],
-            'laufrad-klein':    ['Laser','Schweißen - mittel'],
-            'laufrad-mittel':   ['Laser','Schweißen - mittel'],
-            'laufrad-gross':    ['Laser','Schweißen - viel'],
-            'bock-klein':       ['Laser','Kanten / Runden','Schweißen - mittel','Montieren'],
+            // Laufrad — Wuchten ist Pflicht (rotierendes Teil!)
+            'laufrad-klein':    ['Laser','Schweißen - wenig','Wuchten'],
+            'laufrad-mittel':   ['Laser','Schweißen - mittel','Wuchten'],
+            'laufrad-gross':    ['Laser','Schweißen - viel','Wuchten'],
+            // Bock — klein/mittel/gross unterschiedliche Schweißarbeit
+            'bock-klein':       ['Laser','Kanten / Runden','Schweißen - wenig','Montieren'],
             'bock-mittel':      ['Laser','Kanten / Runden','Schweißen - mittel','Montieren'],
             'bock-gross':       ['Laser','Kanten / Runden','Schweißen - viel','Montieren'],
             'duseneinheit':     ['Laser','Senken / Gewindeschneiden','Schweißen - mittel','Montieren'],
@@ -821,12 +828,15 @@
         let selectedExterne = new Set();
         let selectedBaugruppen = new Set();
         
-        function calcTage(baseTage, scaleFactor, stueckzahl, prozessName) {
-            if (scaleFactor === 0 || stueckzahl <= 1) return baseTage;
-            // Stückzahl-Skalierung: Laser bleibt unverändert (effiziente Maschine),
-            // alle anderen Prozesse +70% aggressiver (Realitäts-Anpassung)
-            const stkMultiplier = (prozessName === 'Laser') ? 1.0 : 1.7;
-            return Math.ceil(baseTage * (1 + Math.log10(stueckzahl) * scaleFactor * stkMultiplier));
+        function calcTage(p, stueckzahl) {
+            // 'fixed' oder Stk=1 → unverändert
+            if (p.skala === 'fixed' || stueckzahl <= 1) return p.baseTage;
+            // SERIAL: jedes Stück braucht eigene Zeit (Schweißen, Wuchten, Lackieren, Montage)
+            if (p.skala === 'serial') {
+                return p.baseTage + Math.ceil((stueckzahl - 1) * p.perStueck);
+            }
+            // PARALLEL: Rüstzeit-Ersparnis, log-Skalierung (Laser, Kanten, Drücken, etc.)
+            return Math.ceil(p.baseTage * (1 + Math.log10(stueckzahl) * p.scaleFactor));
         }
         
         function init() {
@@ -1062,9 +1072,9 @@
                 const typ = el.dataset.typ;
                 const idx = parseInt(el.dataset.idx);
                 const p = (typ === 'interne' ? interneProzesse : externeProzesse)[idx];
-                const tage = calcTage(p.baseTage, p.scaleFactor, stueck, p.name);
+                const tage = calcTage(p, stueck);
                 const calcEl = el.querySelector('[data-calc]');
-                if (p.scaleFactor === 0) {
+                if (p.skala === 'fixed') {
                     calcEl.textContent = `→ ${tage} Tage (fix)`;
                 } else if (tage > p.baseTage) {
                     calcEl.textContent = `→ ${tage} Tage (+${tage - p.baseTage})`;
@@ -1096,11 +1106,11 @@
             let total = 0;
             selectedInterne.forEach(idx => {
                 const p = interneProzesse[idx];
-                total += calcTage(p.baseTage, p.scaleFactor, stueck, p.name);
+                total += calcTage(p, stueck);
             });
             selectedExterne.forEach(idx => {
                 const p = externeProzesse[idx];
-                total += calcTage(p.baseTage, p.scaleFactor, stueck, p.name);
+                total += calcTage(p, stueck);
             });
             
             const puffer = 3;
