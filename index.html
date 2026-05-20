@@ -747,11 +747,12 @@
             'montage':          ['Montieren','Montage Schallkabinen']
         };
         
-        // Wuchten + Lackieren beide für Gehäuse, Laufrad, Bock — Laufrad-Anteil im Bock muss evtl. gewuchtet werden
+        // Wuchten ist bei Laufrad bereits in der Vorlage enthalten — kein Prompt nötig
+        const askWuchtenFor = [];
+        // Lackieren ist optional für Gehäuse, Laufrad, Bock
         const askLackierenFor = ['gehause-klein','gehause-mittel','gehause-gross',
                                  'laufrad-klein','laufrad-mittel','laufrad-gross',
                                  'bock-klein','bock-mittel','bock-gross'];
-        const askWuchtenFor = askLackierenFor;
         
         const displayNames = {
             'gehause-klein': 'Gehäuse-Klein', 'gehause-mittel': 'Gehäuse-Mittel', 'gehause-gross': 'Gehäuse-Groß',
