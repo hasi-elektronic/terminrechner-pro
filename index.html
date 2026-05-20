@@ -747,10 +747,11 @@
             'montage':          ['Montieren','Montage Schallkabinen']
         };
         
-        const askWuchtenFor = ['laufrad-klein','laufrad-mittel','laufrad-gross'];
+        // Wuchten + Lackieren beide für Gehäuse, Laufrad, Bock — Laufrad-Anteil im Bock muss evtl. gewuchtet werden
         const askLackierenFor = ['gehause-klein','gehause-mittel','gehause-gross',
                                  'laufrad-klein','laufrad-mittel','laufrad-gross',
                                  'bock-klein','bock-mittel','bock-gross'];
+        const askWuchtenFor = askLackierenFor;
         
         const displayNames = {
             'gehause-klein': 'Gehäuse-Klein', 'gehause-mittel': 'Gehäuse-Mittel', 'gehause-gross': 'Gehäuse-Groß',
