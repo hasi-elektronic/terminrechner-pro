@@ -1107,15 +1107,53 @@
             if (!zInput) return;
             const stueck = parseInt(document.getElementById('stueckzahl').value) || 1;
             
-            let total = 0;
-            selectedInterne.forEach(idx => {
-                const p = interneProzesse[idx];
-                total += calcTage(p, stueck);
+            // PIPELINE-Berechnung (realistischer Werkstatt-Fluss):
+            // Bottleneck = längster Serial-Prozess (volle Stückzahl-Dauer)
+            // Andere parallele/serielle Prozesse: nur ihre Basis-Zeit zählt
+            //   (sie laufen während des Bottlenecks parallel, "fließen mit")
+            // Fixed-Prozesse (Material bestellen): MÜSSEN davor sein → ardıl eklenir
+            //
+            // Formel:
+            //   total = Σ(fixed.baseTage) + bottleneck.fullDauer + Σ(andere.baseTage)
+            
+            const alleProzesse = [];
+            selectedInterne.forEach(idx => alleProzesse.push(interneProzesse[idx]));
+            selectedExterne.forEach(idx => alleProzesse.push(externeProzesse[idx]));
+            
+            let fixedSum = 0;       // Material bestellen, etc.
+            let bottleneck = 0;     // längster Serial+Parallel-Prozess (volle Dauer)
+            let otherBaseSum = 0;   // alle anderen, nur ihre Basis-Zeit
+            
+            // 1) Erst alle Prozesse durchrechnen
+            const prozessDauern = alleProzesse.map(p => ({
+                p: p,
+                dauer: calcTage(p, stueck),
+                base: p.baseTage,
+                isFixed: p.skala === 'fixed'
+            }));
+            
+            // 2) Fixed-Prozesse separat (Material muss vor allem da sein)
+            prozessDauern.forEach(x => {
+                if (x.isFixed) fixedSum += x.dauer;
             });
-            selectedExterne.forEach(idx => {
-                const p = externeProzesse[idx];
-                total += calcTage(p, stueck);
-            });
+            
+            // 3) Bottleneck finden (längster Nicht-Fixed-Prozess)
+            const nonFixed = prozessDauern.filter(x => !x.isFixed);
+            if (nonFixed.length > 0) {
+                bottleneck = Math.max(...nonFixed.map(x => x.dauer));
+                // 4) Andere Prozesse fließen mit → nur Basis-Zeit
+                nonFixed.forEach(x => {
+                    if (x.dauer !== bottleneck || nonFixed.filter(y => y.dauer === bottleneck).length > 1) {
+                        // Wenn mehrere Prozesse die gleiche max-Dauer haben, nur einer ist der Bottleneck,
+                        // die anderen werden mit ihrer Basis-Zeit addiert (nur einmal abziehen)
+                    }
+                });
+                // Einfacher: bottleneck + sum(base) - base_des_bottleneck
+                const bottleneckItem = nonFixed.find(x => x.dauer === bottleneck);
+                otherBaseSum = nonFixed.reduce((s, x) => s + x.base, 0) - bottleneckItem.base;
+            }
+            
+            const total = fixedSum + bottleneck + otherBaseSum;
             
             const puffer = 3;
             const gesamt = total + puffer;
