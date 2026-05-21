@@ -202,6 +202,24 @@
         }
         .prozess-item:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.15); }
         .prozess-item.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .prozess-item.bottleneck {
+            border: 2px solid #ff9800;
+            box-shadow: 0 0 0 3px rgba(255,152,0,0.15);
+            position: relative;
+        }
+        .prozess-item.bottleneck::after {
+            content: '⏳ Bottleneck';
+            position: absolute;
+            top: -10px;
+            right: 8px;
+            background: #ff9800;
+            color: white;
+            font-size: 0.7em;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
         .prozess-item .name { font-weight: 600; margin-bottom: 8px; font-size: 1.05em; }
         .prozess-item .days { font-size: 0.95em; opacity: 0.85; }
         .prozess-item .days .calc { 
@@ -302,6 +320,54 @@
             background: #f0f0f0;
             color: #333;
             transform: rotate(90deg);
+        }
+        .history-section {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .history-header h4 { margin: 0; color: #666; font-size: 1em; }
+        .history-clear {
+            background: none;
+            border: 1px solid #ddd;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .history-clear:hover { background: #fee; border-color: #f88; }
+        .history-list { display: flex; flex-direction: column; gap: 6px; }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .history-item:hover {
+            background: #eef2ff;
+            border-color: var(--primary);
+            transform: translateX(2px);
+        }
+        .history-item-main { display: flex; flex-direction: column; gap: 2px; }
+        .history-item-title { font-weight: 600; color: #333; }
+        .history-item-meta { font-size: 0.85em; color: #777; }
+        .history-item-result {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: var(--primary);
+            white-space: nowrap;
+            margin-left: 12px;
         }
         .modal-actions {
             display: flex;
@@ -532,6 +598,14 @@
             <div class="prozesse-container active" id="interne"><div class="prozess-grid" id="interne-grid"></div></div>
             <div class="prozesse-container" id="externe"><div class="prozess-grid" id="externe-grid"></div></div>
             <button class="clear-btn" onclick="allesZuruecksetzen()">🗑️ Alles zurücksetzen</button>
+            
+            <div class="history-section" id="historySection" style="display:none;">
+                <div class="history-header">
+                    <h4>📋 Letzte Berechnungen</h4>
+                    <button class="history-clear" onclick="historieLoeschen()" title="Historie leeren">🗑️</button>
+                </div>
+                <div class="history-list" id="historyList"></div>
+            </div>
         </div>
         <div class="footer">
             <p><strong>Terminrechner Pro V2.3</strong> - © 2025 Manfred Sickinger GmbH</p>
@@ -1183,6 +1257,20 @@
             
             const total = fixedSum + bottleneck + otherBaseSum;
             
+            // Bottleneck visuell markieren
+            document.querySelectorAll('.prozess-item').forEach(e => e.classList.remove('bottleneck'));
+            if (nonFixed.length > 1) {  // nur wenn mehrere Prozesse, sonst sinnlos
+                const bottleneckItem = nonFixed.find(x => x.dauer === bottleneck);
+                if (bottleneckItem) {
+                    const allItems = document.querySelectorAll('.prozess-item');
+                    allItems.forEach(item => {
+                        if (item.querySelector('.name')?.textContent === bottleneckItem.p.name) {
+                            item.classList.add('bottleneck');
+                        }
+                    });
+                }
+            }
+            
             const puffer = 3;
             const gesamt = total + puffer;
             const zugesagt = new Date(zInput);
@@ -1220,6 +1308,8 @@
                 subEl.textContent = `❌ ${diff} Tage zu spät`;
                 subEl.style.color = '#FF6B6B';
             }
+
+            historieSpeichernDebounced();
         }
         
         function rechneVorw(start, tage) {
@@ -1252,6 +1342,11 @@
             return `${y}-${m}-${dd}`;
         }
         function allesZuruecksetzen() {
+            // Schutz vor versehentlichem Klick — nur fragen wenn etwas ausgewählt ist
+            const hasSelection = selectedInterne.size > 0 || selectedExterne.size > 0 || selectedBaugruppen.size > 0;
+            if (hasSelection && !confirm('Wirklich alle Auswahlen zurücksetzen?\n\nDie aktuelle Berechnung geht verloren.')) {
+                return;
+            }
             selectedInterne.clear();
             selectedExterne.clear();
             selectedBaugruppen.clear();
@@ -1267,7 +1362,141 @@
             autoBerechnen();
             updateTriggerDisplay();
         }
+
+        // ===== LETZTE BERECHNUNGEN (localStorage) =====
+        const HISTORY_KEY = 'terminrechner_history_v1';
+        const MAX_HISTORY = 5;
+        let historieSaveTimer = null;
+        
+        function historieLaden() {
+            try {
+                const raw = localStorage.getItem(HISTORY_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) { return []; }
+        }
+        
+        function historieSpeichern(eintrag) {
+            try {
+                let list = historieLaden();
+                // Duplikat-Check: gleiche Baugruppen + Stk + Datum → ersetzen
+                const key = JSON.stringify({b: eintrag.baugruppen, s: eintrag.stueck, z: eintrag.zugesagt});
+                list = list.filter(x => JSON.stringify({b: x.baugruppen, s: x.stueck, z: x.zugesagt}) !== key);
+                list.unshift(eintrag);
+                if (list.length > MAX_HISTORY) list = list.slice(0, MAX_HISTORY);
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+                historieRender();
+            } catch (e) { console.warn('Historie kann nicht gespeichert werden:', e); }
+        }
+        
+        function historieAusBerechnung() {
+            // Speichert nur, wenn mindestens eine Baugruppe oder ein Prozess ausgewählt ist
+            if (selectedBaugruppen.size === 0 && selectedInterne.size === 0 && selectedExterne.size === 0) return;
+            
+            const zInput = document.getElementById('zugesagt').value;
+            const stueck = parseInt(document.getElementById('stueckzahl').value) || 1;
+            if (!zInput) return;
+            
+            const totalText = document.getElementById('totalDays').textContent;
+            const fruehestText = document.getElementById('fruehest').textContent;
+            
+            historieSpeichern({
+                ts: Date.now(),
+                baugruppen: Array.from(selectedBaugruppen),
+                interne: Array.from(selectedInterne),
+                externe: Array.from(selectedExterne),
+                stueck: stueck,
+                zugesagt: zInput,
+                totalText: totalText,
+                fruehest: fruehestText
+            });
+        }
+        
+        // Debounced trigger nach autoBerechnen
+        function historieSpeichernDebounced() {
+            clearTimeout(historieSaveTimer);
+            historieSaveTimer = setTimeout(historieAusBerechnung, 1500);
+        }
+        
+        function historieRender() {
+            const list = historieLaden();
+            const section = document.getElementById('historySection');
+            const listEl = document.getElementById('historyList');
+            if (!section || !listEl) return;
+            
+            if (list.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            section.style.display = 'block';
+            
+            const dnamen = {
+                'gehause-klein':'Gehäuse-K','gehause-mittel':'Gehäuse-M','gehause-gross':'Gehäuse-G',
+                'laufrad-klein':'Laufrad-K','laufrad-mittel':'Laufrad-M','laufrad-gross':'Laufrad-G',
+                'bock-klein':'Bock-K','bock-mittel':'Bock-M','bock-gross':'Bock-G',
+                'duseneinheit':'Düse','isolierung':'Isolierung','montage':'Montage',
+                'venti-klein':'VENTI-K','venti-mittel':'VENTI-M','venti-gross':'VENTI-G'
+            };
+            
+            listEl.innerHTML = list.map((e, idx) => {
+                const bgText = e.baugruppen.length > 0 
+                    ? e.baugruppen.map(b => dnamen[b] || b).join(', ')
+                    : `${e.interne.length + e.externe.length} Prozesse manuell`;
+                const datum = new Date(e.ts).toLocaleString('de-DE', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+                const stkInfo = `${e.stueck} Stk · zugesagt ${new Date(e.zugesagt).toLocaleDateString('de-DE')}`;
+                return `<div class="history-item" onclick="historieLaden_(${idx})" title="Klicken zum Wiederherstellen">
+                    <div class="history-item-main">
+                        <div class="history-item-title">${bgText}</div>
+                        <div class="history-item-meta">${stkInfo} · gespeichert ${datum}</div>
+                    </div>
+                    <div class="history-item-result">${e.fruehest}</div>
+                </div>`;
+            }).join('');
+        }
+        
+        function historieLaden_(idx) {
+            const list = historieLaden();
+            const e = list[idx];
+            if (!e) return;
+            
+            // Auswahl wiederherstellen
+            selectedBaugruppen.clear();
+            selectedInterne.clear();
+            selectedExterne.clear();
+            e.baugruppen.forEach(b => selectedBaugruppen.add(b));
+            e.interne.forEach(i => selectedInterne.add(i));
+            e.externe.forEach(i => selectedExterne.add(i));
+            
+            // UI sync
+            document.querySelectorAll('.bg-btn').forEach(btn => {
+                btn.classList.toggle('active', selectedBaugruppen.has(btn.dataset.bg));
+            });
+            document.querySelectorAll('.prozess-item').forEach(item => {
+                const idx_ = parseInt(item.dataset.idx);
+                const isExterne = item.closest('#externe') !== null;
+                const set_ = isExterne ? selectedExterne : selectedInterne;
+                item.classList.toggle('active', set_.has(idx_));
+            });
+            
+            document.getElementById('stueckzahl').value = e.stueck;
+            document.getElementById('zugesagt').value = e.zugesagt;
+            
+            updateAccordionBadges();
+            updateTriggerDisplay();
+            updateProzessTage();
+            autoBerechnen();
+            
+            // Scroll oben
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+        
+        function historieLoeschen() {
+            if (!confirm('Wirklich die gesamte Historie löschen?')) return;
+            localStorage.removeItem(HISTORY_KEY);
+            historieRender();
+        }
+        
         init();
+        historieRender();  // Beim Laden anzeigen falls vorhanden
     // ESC schließt offene Modals
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
