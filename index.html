@@ -730,19 +730,19 @@
         ];
         
         const vorlagen = {
-            // Gehäuse — klein hat weniger Schweißarbeit
-            'gehause-klein':    ['Laser','Kanten / Runden','Schweißen - wenig','Montieren'],
-            'gehause-mittel':   ['Laser','Kanten / Runden','Schweißen - mittel','Montieren'],
-            'gehause-gross':    ['Laser','Kanten / Runden','Schweißen - viel','Montieren'],
+            // Gehäuse — Montieren entfernt (nur bei VENTI Komplett automatisch)
+            'gehause-klein':    ['Laser','Kanten / Runden','Schweißen - wenig'],
+            'gehause-mittel':   ['Laser','Kanten / Runden','Schweißen - mittel'],
+            'gehause-gross':    ['Laser','Kanten / Runden','Schweißen - viel'],
             // Laufrad — Wuchten ist OPTIONAL (wird im Modal gefragt)
             'laufrad-klein':    ['Laser','Schweißen - wenig'],
             'laufrad-mittel':   ['Laser','Schweißen - mittel'],
             'laufrad-gross':    ['Laser','Schweißen - viel'],
-            // Bock — klein/mittel/gross unterschiedliche Schweißarbeit
-            'bock-klein':       ['Laser','Kanten / Runden','Schweißen - wenig','Montieren'],
-            'bock-mittel':      ['Laser','Kanten / Runden','Schweißen - mittel','Montieren'],
-            'bock-gross':       ['Laser','Kanten / Runden','Schweißen - viel','Montieren'],
-            'duseneinheit':     ['Laser','Senken / Gewindeschneiden','Schweißen - mittel','Montieren'],
+            // Bock — Montieren entfernt
+            'bock-klein':       ['Laser','Kanten / Runden','Schweißen - wenig'],
+            'bock-mittel':      ['Laser','Kanten / Runden','Schweißen - mittel'],
+            'bock-gross':       ['Laser','Kanten / Runden','Schweißen - viel'],
+            'duseneinheit':     ['Laser','Senken / Gewindeschneiden','Schweißen - mittel'],
             'isolierung':       ['Isolieren'],
             'montage':          ['Montieren','Montage Schallkabinen']
         };
@@ -977,9 +977,10 @@
                             vorlagen[subBg].forEach(p => prozessNamesToAdd.add(p));
                         }
                     });
-                    // VENTI Komplett = ganze Maschine → Wuchten + Lackieren immer dabei
+                    // VENTI Komplett = ganze Maschine → Wuchten + Lackieren + Montieren immer dabei
                     prozessNamesToAdd.add('Wuchten');
                     prozessNamesToAdd.add('Lackieren');
+                    prozessNamesToAdd.add('Montieren');
                 } else if (vorlagen[bg]) {
                     vorlagen[bg].forEach(p => prozessNamesToAdd.add(p));
                 }
