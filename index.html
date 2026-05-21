@@ -280,6 +280,29 @@
         }
         .modal-check:hover { background: #e8f4f8; }
         .modal-check input { width: 20px; height: 20px; cursor: pointer; }
+        .modal-close-x {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 32px;
+            line-height: 1;
+            cursor: pointer;
+            color: #888;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .modal-close-x:hover {
+            background: #f0f0f0;
+            color: #333;
+            transform: rotate(90deg);
+        }
         .modal-actions {
             display: flex;
             gap: 10px;
@@ -518,10 +541,11 @@
     
     <!-- MODAL: BAUGRUPPEN - AKKORDION -->
     <div class="modal-overlay" id="baugruppenModal">
-        <div class="modal modal-lg">
+        <div class="modal modal-lg" style="position:relative;">
+            <button class="modal-close-x" onclick="closeBaugruppenModal()" title="Schließen (ESC)" aria-label="Schließen">×</button>
             <h3>🏭 Baugruppen-Vorlagen wählen</h3>
             <p style="text-align:center; color:#666; margin-bottom:20px; font-style:italic;">
-                Kategorie öffnen → Variante wählen
+                Kategorie öffnen → Variante wählen → schließt automatisch
             </p>
             
             <div class="accordion" id="accordion">
@@ -673,9 +697,6 @@
                 </div>
             </div>
             
-            <div class="modal-actions">
-                <button class="modal-btn cancel" onclick="closeBaugruppenModal()">✓ Fertig</button>
-            </div>
         </div>
     </div>
     
@@ -890,6 +911,11 @@
                     updateAccordionBadges();
                     applyAllVorlagen();
                     updateTriggerDisplay();
+                    
+                    // Auto-Close nach kurzer Verzögerung (visuelles Feedback)
+                    if (selectedBaugruppen.size > 0) {
+                        setTimeout(() => closeBaugruppenModal(), 350);
+                    }
                 });
             });
             
@@ -1242,6 +1268,28 @@
             updateTriggerDisplay();
         }
         init();
+    // ESC schließt offene Modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const bgModal = document.getElementById('baugruppenModal');
+                const optModal = document.getElementById('optionalModal');
+                if (bgModal && bgModal.classList.contains('active')) closeBaugruppenModal();
+                if (optModal && optModal.classList.contains('active')) optModal.classList.remove('active');
+            }
+        });
+        // Klick auf Overlay (außerhalb des Modal-Inhalts) schließt
+        ['baugruppenModal', 'optionalModal'].forEach(id => {
+            const overlay = document.getElementById(id);
+            if (overlay) {
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) {
+                        if (id === 'baugruppenModal') closeBaugruppenModal();
+                        else overlay.classList.remove('active');
+                    }
+                });
+            }
+        });
     </script>
+
 </body>
 </html>
