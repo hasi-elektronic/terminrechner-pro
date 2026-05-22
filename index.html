@@ -1357,7 +1357,10 @@
         function historieLaden() {
             try {
                 const raw = localStorage.getItem(HISTORY_KEY);
-                return raw ? JSON.parse(raw) : [];
+                const parsed = raw ? JSON.parse(raw) : [];
+                // Validierung: nur Arrays akzeptieren, sonst verwerfen
+                if (!Array.isArray(parsed)) return [];
+                return parsed.filter(e => e && typeof e === 'object');
             } catch (e) { return []; }
         }
         
@@ -1423,18 +1426,21 @@
                 'venti-klein':'VENTI-K','venti-mittel':'VENTI-M','venti-gross':'VENTI-G'
             };
             
+            const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
             listEl.innerHTML = list.map((e, idx) => {
-                const bgText = e.baugruppen.length > 0 
-                    ? e.baugruppen.map(b => dnamen[b] || b).join(', ')
-                    : `${e.interne.length + e.externe.length} Prozesse manuell`;
-                const datum = new Date(e.ts).toLocaleString('de-DE', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
-                const stkInfo = `${e.stueck} Stk · zugesagt ${new Date(e.zugesagt).toLocaleDateString('de-DE')}`;
-                return `<div class="history-item" onclick="historieLaden_(${idx})" title="Klicken zum Wiederherstellen">
+                // Alle Werte aus localStorage werden escaped (Schutz vor manipuliertem Speicher)
+                const bgText = Array.isArray(e.baugruppen) && e.baugruppen.length > 0 
+                    ? e.baugruppen.map(b => esc(dnamen[b] || b)).join(', ')
+                    : `${(e.interne||[]).length + (e.externe||[]).length} Prozesse manuell`;
+                const datum = esc(new Date(e.ts).toLocaleString('de-DE', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}));
+                const stkInfo = esc(`${parseInt(e.stueck)||1} Stk · zugesagt ${new Date(e.zugesagt).toLocaleDateString('de-DE')}`);
+                const fruehest = esc(e.fruehest);
+                return `<div class="history-item" onclick="historieLaden_(${parseInt(idx)})" title="Klicken zum Wiederherstellen">
                     <div class="history-item-main">
                         <div class="history-item-title">${bgText}</div>
                         <div class="history-item-meta">${stkInfo} · gespeichert ${datum}</div>
                     </div>
-                    <div class="history-item-result">${e.fruehest}</div>
+                    <div class="history-item-result">${fruehest}</div>
                 </div>`;
             }).join('');
         }
